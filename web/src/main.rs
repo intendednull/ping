@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use yew_services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
-use common::Message;
+use common::transport::{self as t, Message};
 
 enum Msg {
     Response(Message),
@@ -18,7 +18,7 @@ struct App {
 impl App {
     fn request(&mut self, msg: &Message) {
         if let Some(ws) = &mut self.ws {
-            ws.send_binary(Ok(common::pack(msg)));
+            ws.send_binary(Ok(t::pack(msg)));
         }
     }
 
@@ -29,14 +29,13 @@ impl App {
         let handle_response = self
             .link
             .callback(|result: Result<Vec<u8>, anyhow::Error>| match result {
-                Ok(data) => Msg::Response(common::unpack(&data)),
+                Ok(data) => Msg::Response(t::unpack(&data)),
                 Err(_) => Msg::Noop,
             });
         // If connection is closed, try to reconnect.
         let reconnect = self.link.callback(|_| Msg::InitListener);
         let handle_status = Callback::from(move |status| {
             log::debug!("{:?}", status);
-            let reconnect = reconnect.clone();
             match status {
                 WebSocketStatus::Closed | WebSocketStatus::Error => {
                     reconnect.emit(());
