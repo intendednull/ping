@@ -15,8 +15,9 @@ fn main() {
     loop {
         if let Ok(stream) = listener.accept() {
             id_counter += 1;
-            wactor::spawn::<client::Client>()
-                .send(client::Input {
+            let client = wactor::spawn::<client::Listener>();
+            client
+                .send(client::Config {
                     stream,
                     node: node.clone(),
                     id: id_counter,
