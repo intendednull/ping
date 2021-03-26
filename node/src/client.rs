@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tungstenite::{protocol::Role, server, WebSocket};
 use wactor::*;
 
-use common::transport::Message;
+use common::transport::{self as t, Message};
 
 use crate::node::{self, Node};
 
@@ -25,7 +25,7 @@ impl Actor for Listener {
     }
 
     fn handle(&mut self, Config { node, stream, id }: Self::Input, _link: &Link<Self>) {
-        // Create a new ws server.
+        // Accept a ws connection.
         let mut ws = server::accept(stream.clone()).expect("Error creating WS");
         // Spawn a responder to handle responsed from node. Needed because this listener will
         // always be blocking to read messages.
@@ -44,8 +44,7 @@ impl Actor for Listener {
             let msg = ws.read_message();
             match msg {
                 Ok(tungstenite::Message::Binary(msg)) => {
-                    let msg =
-                        bincode::deserialize::<Message>(&msg).expect("Error deserializing message");
+                    let msg = t::unpack(&msg);
 
                     log::info!("Received: {:?}", msg);
 
@@ -87,11 +86,11 @@ impl Actor for Responder {
                 self.ws = Some(WebSocket::from_raw_socket(stream, Role::Server, None));
             }
             ResponderInput::Send(msg) => {
-                let buf = bincode::serialize(&msg).expect("Error serializing response");
+                let msg = t::pack(&msg);
                 self.ws
                     .as_mut()
                     .expect("not initialized")
-                    .write_message(buf.into())
+                    .write_message(msg.into())
                     .ok();
             }
         }
