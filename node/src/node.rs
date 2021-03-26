@@ -38,7 +38,7 @@ impl Actor for Node {
         }
     }
 
-    fn handle(&mut self, msg: Self::Input, link: &Link<Self>) {
+    fn handle(&mut self, msg: Self::Input, _link: &Link<Self>) {
         match msg {
             Input::RegisterResponder {
                 client_id,
@@ -52,11 +52,9 @@ impl Actor for Node {
                     t::Message::Pong => t::Message::Ping,
                 };
 
-                self.clients
-                    .get(&client_id)
-                    .expect("Unknown client")
-                    .send(response)
-                    .ok();
+                if let Some(bridge) = self.clients.get(&client_id) {
+                    bridge.send(response).ok();
+                }
             }
         }
     }

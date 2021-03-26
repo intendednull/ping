@@ -41,8 +41,7 @@ impl Actor for Listener {
         .expect("register responder");
 
         loop {
-            let msg = ws.read_message();
-            match msg {
+            match ws.read_message() {
                 Ok(tungstenite::Message::Binary(msg)) => {
                     let msg = t::unpack(&msg);
 
