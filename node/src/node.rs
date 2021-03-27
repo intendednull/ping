@@ -1,31 +1,29 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use slab::Slab;
 use wactor::*;
 
 use common::transport as t;
 
-use crate::client::{Listener, Responder};
+use crate::client::Responder;
 
 #[derive(Deserialize, Serialize)]
 pub enum Input {
-    Message {
-        client_id: u32,
-        msg: t::Message,
-    },
-    RegisterResponder {
-        client_id: u32,
-        responder: Bridge<Responder>,
-    },
+    Message { client_id: usize, msg: t::Message },
+    RegisterClient(Bridge<Responder>),
 }
 
 #[derive(Deserialize, Serialize)]
 pub enum Output {
+    /// Receive a message from client.
     Message(t::Message),
+    /// Assign an internal id the client. This is **not** a unique identifier for individual
+    /// users, and will be reused when connection closes.
+    ClientId(usize),
 }
 
 pub struct Node {
-    clients: HashMap<u32, Bridge<Responder>>,
+    /// Tracking connected clients.
+    clients: Slab<Bridge<Responder>>,
 }
 
 impl Actor for Node {
@@ -38,13 +36,11 @@ impl Actor for Node {
         }
     }
 
-    fn handle(&mut self, msg: Self::Input, _link: &Link<Self>) {
+    fn handle(&mut self, msg: Self::Input, link: &Link<Self>) {
         match msg {
-            Input::RegisterResponder {
-                client_id,
-                responder: listener,
-            } => {
-                self.clients.insert(client_id, listener);
+            Input::RegisterClient(responder) => {
+                let id = self.clients.insert(responder);
+                link.respond(Output::ClientId(id)).ok();
             }
             Input::Message { client_id, msg } => {
                 let response = match msg {
@@ -52,8 +48,8 @@ impl Actor for Node {
                     t::Message::Pong => t::Message::Ping,
                 };
 
-                if let Some(bridge) = self.clients.get(&client_id) {
-                    bridge.send(response).ok();
+                if let Some(client) = self.clients.get(client_id) {
+                    client.send(response).ok();
                 }
             }
         }

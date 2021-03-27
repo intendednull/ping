@@ -11,7 +11,6 @@ use crate::node::{self, Node};
 pub struct Config {
     pub stream: TcpStream,
     pub node: Bridge<Node>,
-    pub id: u32,
 }
 
 /// Actor for receiving messages from client.
@@ -24,7 +23,7 @@ impl Actor for Listener {
         Self
     }
 
-    fn handle(&mut self, Config { node, stream, id }: Self::Input, _link: &Link<Self>) {
+    fn handle(&mut self, Config { node, stream }: Self::Input, _link: &Link<Self>) {
         // Accept a ws connection.
         let mut ws = server::accept(stream.clone()).expect("Error creating WS");
         // Spawn a responder to handle responsed from node. Needed because this listener will
@@ -33,12 +32,15 @@ impl Actor for Listener {
         responder
             .send(ResponderInput::Init(stream))
             .expect("responder");
+
         // Register this client's responder with node.
-        node.send(node::Input::RegisterResponder {
-            client_id: id,
-            responder,
-        })
-        .expect("register responder");
+        let id = match node
+            .get(node::Input::RegisterClient(responder))
+            .expect("register responder")
+        {
+            node::Output::ClientId(id) => id,
+            _ => panic!("Bad response from node"),
+        };
 
         loop {
             match ws.read_message() {
