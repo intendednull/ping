@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tungstenite::{protocol::Role, server, WebSocket};
 use wactor::*;
 
-use common::transport::{self as t, Message};
+use common::transport::{self as t, Request, Response};
 
 use crate::node::{self, Node};
 
@@ -45,11 +45,11 @@ impl Actor for Listener {
         loop {
             match ws.read_message() {
                 Ok(tungstenite::Message::Binary(msg)) => {
-                    let msg = t::unpack(&msg);
+                    if let Ok(msg) = t::unpack(&msg) {
+                        log::info!("Received: {:?}", msg);
 
-                    log::info!("Received: {:?}", msg);
-
-                    node.send(node::Input::Message { client_id: id, msg }).ok();
+                        node.send(node::Input::Request { client_id: id, msg }).ok();
+                    }
                 }
                 // TODO: If stream is closed, shutdown responder and deregister from node.
                 Err(_) => break,
@@ -62,7 +62,7 @@ impl Actor for Listener {
 #[derive(Deserialize, Serialize)]
 pub enum ResponderInput {
     Init(TcpStream),
-    Send(Message),
+    Response(Response),
 }
 
 /// Actor for sending events to client.
@@ -86,20 +86,22 @@ impl Actor for Responder {
                 // Connect to stream, but don't perform a handshake.
                 self.ws = Some(WebSocket::from_raw_socket(stream, Role::Server, None));
             }
-            ResponderInput::Send(msg) => {
-                let msg = t::pack(&msg);
-                self.ws
-                    .as_mut()
-                    .expect("not initialized")
-                    .write_message(msg.into())
-                    .ok();
+            ResponderInput::Response(msg) => {
+                log::info!("Sending {:?}", msg);
+                if let Ok(data) = t::pack(&msg) {
+                    self.ws
+                        .as_mut()
+                        .expect("not initialized")
+                        .write_message(data.into())
+                        .ok();
+                }
             }
         }
     }
 }
 
-impl From<Message> for ResponderInput {
-    fn from(val: Message) -> Self {
-        ResponderInput::Send(val)
+impl From<Response> for ResponderInput {
+    fn from(val: Response) -> Self {
+        ResponderInput::Response(val)
     }
 }
