@@ -8,3 +8,4 @@ edition = "2018"
 bincode = "1.3.2"
 serde = { version = "1.0.124", features = ["derive"] }
 anyhow = "1.0.38"
+sha3 = "0.9.1"
