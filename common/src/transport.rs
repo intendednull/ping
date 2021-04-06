@@ -1,28 +1,18 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+use crate::channel::Channel;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
     /// Join room with given id.
-    JoinRoom(String),
+    JoinChannel(String),
     /// Send a message to room with given id.
-    Group(Group),
+    Channel(Channel),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Response {
-    Group(Group),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Group {
-    pub id: String,
-    pub msg: GroupMsg,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum GroupMsg {
-    Ping,
-    Pong,
+    Channel(Channel),
 }
 
 pub fn pack<T: Serialize>(data: &T) -> anyhow::Result<Vec<u8>> {

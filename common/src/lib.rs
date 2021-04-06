@@ -1,4 +1,5 @@
 pub mod block;
+pub mod channel;
 pub mod transport;
 
 #[cfg(test)]

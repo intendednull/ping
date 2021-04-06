@@ -5,7 +5,7 @@ use yew::prelude::*;
 use yew_services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yewdux::prelude::{self, *};
 
-use common::transport::{self as t, Group, GroupMsg, Request, Response};
+use common::transport::{self as t, ChainMsg, Channel, Request, Response};
 
 #[derive(Clone, Default)]
 pub struct Room {
@@ -57,8 +57,8 @@ impl prelude::Store for Store {
     fn update(&mut self, msg: Self::Message) -> Changed {
         match msg {
             Msg::Response(msg) => match msg {
-                Response::Group(Group { id, msg }) => match msg {
-                    GroupMsg::Ping => {
+                Response::Channel(Channel { id, action: msg }) => match msg {
+                    ChainMsg::Ping => {
                         self.state_mut()
                             .rooms
                             .entry(id)
@@ -67,7 +67,7 @@ impl prelude::Store for Store {
                             .push("pong".to_owned());
                         true
                     }
-                    GroupMsg::Pong => {
+                    ChainMsg::Pong => {
                         self.state_mut()
                             .rooms
                             .entry(id)

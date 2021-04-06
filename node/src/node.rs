@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use slab::Slab;
 use wactor::*;
 
-use common::transport::{Group, Request, Response};
+use common::{
+    channel::Channel,
+    transport::{Request, Response},
+};
 
 use crate::client::Responder;
 
@@ -26,13 +29,13 @@ pub enum Output {
 pub struct Node {
     /// Tracking connected clients.
     clients: Slab<Bridge<Responder>>,
-    groups: HashMap<String, Vec<Bridge<Responder>>>,
+    channels: HashMap<String, Vec<Bridge<Responder>>>,
 }
 
 impl Node {
-    fn join_group(&mut self, client_id: usize, group_id: String) {
+    fn join_channel(&mut self, client_id: usize, group_id: String) {
         if let Some(client) = self.clients.get(client_id) {
-            self.groups
+            self.channels
                 .entry(group_id)
                 .or_default()
                 .push(client.clone())
@@ -45,9 +48,9 @@ impl Node {
         }
     }
 
-    fn send_group(&mut self, group: Group) {
-        if let Some(clients) = self.groups.get_mut(&group.id) {
-            clients.retain(|client| client.send(Response::Group(group.clone())).is_ok())
+    fn send_channel(&mut self, channel: Channel) {
+        if let Some(clients) = self.channels.get_mut(&channel.id) {
+            clients.retain(|client| client.send(Response::Channel(channel.clone())).is_ok())
         }
     }
 }
@@ -59,7 +62,7 @@ impl Actor for Node {
     fn create() -> Self {
         Self {
             clients: Default::default(),
-            groups: Default::default(),
+            channels: Default::default(),
         }
     }
 
@@ -70,10 +73,10 @@ impl Actor for Node {
                 link.respond(Output::ClientId(id)).ok();
             }
             Input::Request { client_id, msg } => match msg {
-                Request::JoinRoom(id) => {
-                    self.join_group(client_id, id);
+                Request::JoinChannel(id) => {
+                    self.join_channel(client_id, id);
                 }
-                Request::Group(group) => self.send_group(group),
+                Request::Channel(channel) => self.send_channel(channel),
             },
         }
     }
