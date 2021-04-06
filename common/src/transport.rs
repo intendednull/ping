@@ -1,18 +1,18 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::channel::Channel;
+use crate::channel::ChannelMsg;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
     /// Join room with given id.
     JoinChannel(String),
     /// Send a message to room with given id.
-    Channel(Channel),
+    Channel(ChannelMsg),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Response {
-    Channel(Channel),
+    Channel(ChannelMsg),
 }
 
 pub fn pack<T: Serialize>(data: &T) -> anyhow::Result<Vec<u8>> {

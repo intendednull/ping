@@ -5,7 +5,10 @@ use yew_services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yewdux::prelude::*;
 use yewtil::NeqAssign;
 
-use common::transport::{self as t, ChainMsg, Channel, Request, Response};
+use common::{
+    channel::{Action, ChannelMsg},
+    transport::{self as t, Request, Response},
+};
 
 struct App {
     dispatch: DispatchProps<store::Store>,
@@ -32,18 +35,20 @@ impl Component for App {
             .dispatch
             .callback(|_| Request::JoinChannel("foo".to_owned()));
         let onclick = self.dispatch.callback(|_| {
-            Request::Channel(Channel {
+            Request::Channel(ChannelMsg {
                 id: "foo".to_owned(),
-                action: ChainMsg::Ping,
+                hash: Default::default(),
+                action: Action::Ping,
             })
         });
         let messages = self
             .dispatch
             .state()
-            .rooms
+            .channels
             .get(&"foo".to_owned())
             .map(|room| {
-                room.messages
+                room.state
+                    .messages
                     .iter()
                     .map(|m| html! { <p>{ m }</p> })
                     .collect::<Html>()

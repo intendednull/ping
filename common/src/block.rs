@@ -3,6 +3,7 @@ use sha3::{digest, Digest, Sha3_256};
 
 use crate::transport;
 
+#[derive(Clone, Serialize)]
 pub struct Block<M: Serialize> {
     pub msg: M,
     pub hash: digest::Output<Sha3_256>,
@@ -23,7 +24,7 @@ impl<M: Serialize> Block<M> {
         })
     }
 
-    pub fn apply<S: Serialize>(&self, msg: M, state: &S) -> anyhow::Result<Self> {
+    pub fn update<S: Serialize>(&self, msg: M, state: &S) -> anyhow::Result<Self> {
         let hash = Sha3_256::new()
             .chain(transport::pack(&msg)?)
             .chain(transport::pack(state)?)

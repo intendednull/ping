@@ -1,20 +1,85 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 use yew_services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yewdux::prelude::{self, *};
 
-use common::transport::{self as t, ChainMsg, Channel, Request, Response};
+use common::{
+    block::Block,
+    channel::{Action, ChannelMsg},
+    transport::{self as t, Request, Response},
+};
 
-#[derive(Clone, Default)]
-pub struct Room {
+#[derive(Clone, Default, Serialize)]
+pub struct ChannelState {
     pub messages: Vec<String>,
+    pub participants: usize,
+}
+
+impl ChannelState {
+    fn apply(&mut self, action: Action) {
+        match action {
+            Action::Participants(n) => {
+                self.participants = n;
+            }
+            Action::Ping => {
+                self.messages.push("ping".into());
+            }
+            Action::Pong => {
+                self.messages.push("pong".into());
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Channel {
+    pub state: ChannelState,
+    pub block: Block<Action>,
+}
+
+impl Channel {
+    fn new(action: Action) -> anyhow::Result<Self> {
+        let mut state = ChannelState::default();
+        state.apply(action.clone());
+
+        Ok(Self {
+            block: Block::new(action, &state)?,
+            state,
+        })
+    }
+
+    fn apply(&mut self, action: Action) -> anyhow::Result<()> {
+        self.state.apply(action.clone());
+        self.block = self.block.update(action, &self.state)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Default)]
 pub struct State {
-    pub rooms: HashMap<String, Room>,
+    pub channels: HashMap<String, Channel>,
+}
+
+impl State {
+    fn apply(&mut self, msg: ChannelMsg) -> anyhow::Result<()> {
+        match self.channels.get_mut(&msg.id) {
+            Some(channel) if channel.block.hash == msg.hash => {
+                channel.apply(msg.action)?;
+            }
+            Some(_channel) => {
+                log::debug!("Mismatched action");
+            }
+            None => {
+                self.channels.insert(msg.id, Channel::new(msg.action)?);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 pub enum Input {
@@ -57,26 +122,10 @@ impl prelude::Store for Store {
     fn update(&mut self, msg: Self::Message) -> Changed {
         match msg {
             Msg::Response(msg) => match msg {
-                Response::Channel(Channel { id, action: msg }) => match msg {
-                    ChainMsg::Ping => {
-                        self.state_mut()
-                            .rooms
-                            .entry(id)
-                            .or_default()
-                            .messages
-                            .push("pong".to_owned());
-                        true
-                    }
-                    ChainMsg::Pong => {
-                        self.state_mut()
-                            .rooms
-                            .entry(id)
-                            .or_default()
-                            .messages
-                            .push("ping".to_owned());
-                        true
-                    }
-                },
+                Response::Channel(msg) => {
+                    self.state_mut().apply(msg).ok();
+                    true
+                }
             },
             Msg::InitListener => {
                 self.init_listener();

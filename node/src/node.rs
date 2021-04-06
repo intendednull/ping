@@ -5,7 +5,7 @@ use slab::Slab;
 use wactor::*;
 
 use common::{
-    channel::Channel,
+    channel::ChannelMsg,
     transport::{Request, Response},
 };
 
@@ -33,10 +33,10 @@ pub struct Node {
 }
 
 impl Node {
-    fn join_channel(&mut self, client_id: usize, group_id: String) {
+    fn join_channel(&mut self, client_id: usize, channel_id: String) {
         if let Some(client) = self.clients.get(client_id) {
             self.channels
-                .entry(group_id)
+                .entry(channel_id)
                 .or_default()
                 .push(client.clone())
         }
@@ -48,7 +48,7 @@ impl Node {
         }
     }
 
-    fn send_channel(&mut self, channel: Channel) {
+    fn send_channel(&mut self, channel: ChannelMsg) {
         if let Some(clients) = self.channels.get_mut(&channel.id) {
             clients.retain(|client| client.send(Response::Channel(channel.clone())).is_ok())
         }
