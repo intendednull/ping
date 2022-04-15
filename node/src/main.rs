@@ -1,24 +1,22 @@
-mod client;
+mod connection;
 mod node;
 
-use lunatic::net::TcpListener;
+use lunatic::{net::TcpListener, process::Process, Mailbox};
 
-fn main() {
+#[lunatic::main]
+fn main(_: Mailbox<()>) {
     env_logger::init();
-
-    let node = wactor::spawn::<node::Node>();
 
     let addr = "127.0.0.1:9001";
     let listener = TcpListener::bind(addr).expect("Could not bind");
+    let node = node::start();
+    let mut connections: Vec<Process<()>> = vec![];
     loop {
-        if let Ok(stream) = listener.accept() {
-            let client = wactor::spawn::<client::Listener>();
-            client
-                .send(client::Config {
-                    stream,
-                    node: node.clone(),
-                })
-                .expect("Error spawning node")
+        if let Ok((stream, _)) = listener.accept() {
+            match connection::connect(node.clone(), stream) {
+                Ok(con) => connections.push(con),
+                Err(err) => log::error!("Unable to create connection: {:?}", err),
+            }
         }
     }
 }

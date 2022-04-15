@@ -1,19 +1,17 @@
+use std::rc::Rc;
+
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::channel::ChannelMsg;
+use crate::address::Address;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
-    /// Join room with given id.
-    JoinChannel(String),
-    /// Send a message to room with given id.
-    Channel(ChannelMsg),
+    Send(Address, Rc<Vec<u8>>),
+    Join(Address),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum Response {
-    Channel(ChannelMsg),
-}
+pub struct Response(pub Rc<Vec<u8>>);
 
 pub fn pack<T: Serialize>(data: &T) -> anyhow::Result<Vec<u8>> {
     Ok(bincode::serialize(data)?)

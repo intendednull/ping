@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 common = { path = "../common" }
-wactor = { git = "https://github.com/intendednull/wactor.git" }
 lunatic = { git = "https://github.com/lunatic-solutions/rust-lib.git" }
 serde = "1.0.124"
 tungstenite = { version = "0.13.0", default-features = false }
