@@ -10,4 +10,4 @@ serde = { version = "1.0.124", features = ["derive", "rc"] }
 anyhow = "1.0.38"
 sha3 = "0.9.1"
 generic-array = { version = "0.14.4", features = ["serde"] }
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }

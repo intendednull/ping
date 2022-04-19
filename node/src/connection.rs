@@ -3,12 +3,11 @@ use lunatic::{
     process::{self, Process},
     LunaticError, Mailbox,
 };
-use serde::{Deserialize, Serialize};
+
 use tungstenite::{protocol::Role, server, WebSocket};
 
 use common::{
-    address::Address,
-    transport::{self as t, Request, Response},
+    transport::{self as t, Output},
 };
 
 use crate::node;
@@ -23,13 +22,13 @@ pub fn connect(
     stream: TcpStream,
 ) -> Result<Process<()>, ConnectionError> {
     process::spawn_with(
-        (node.clone(), stream.clone()),
+        (node, stream),
         |(node, stream), _mailbox: Mailbox<()>| {
             let mut ws = server::accept(stream.clone()).expect("Error creating WS");
 
             // Spawn a responder to handle responsed from node. Needed because this listener will
             // always be blocking to read messages.
-            let sender = process::spawn_with(stream, |stream, mailbox: Mailbox<Response>| {
+            let sender = process::spawn_with(stream, |stream, mailbox: Mailbox<Output>| {
                 let mut ws = Some(WebSocket::from_raw_socket(stream, Role::Server, None));
                 while let Ok(msg) = mailbox.receive() {
                     if let Ok(data) = t::pack(&msg) {

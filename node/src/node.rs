@@ -8,17 +8,17 @@ use serde::{Deserialize, Serialize};
 
 use common::{
     address::Address,
-    transport::{Request, Response},
+    transport::{Input, Output},
 };
 
 #[derive(Serialize, Deserialize)]
 pub enum Msg {
-    Request(Process<Response>, Request),
+    Request(Process<Output>, Input),
 }
 
 #[derive(Default)]
 struct State {
-    channels: HashMap<Address, Vec<Process<Response>>>,
+    channels: HashMap<Address, Vec<Process<Output>>>,
 }
 
 pub fn start() -> Process<Msg> {
@@ -28,14 +28,14 @@ pub fn start() -> Process<Msg> {
             if let Ok(msg) = mailbox.receive() {
                 match msg {
                     Msg::Request(conn, msg) => match msg {
-                        Request::Send(to, msg) => {
+                        Input::Send(to, msg) => {
                             if let Some(channel) = state.channels.get(&to) {
                                 for conn in channel {
-                                    conn.send(Response(msg.clone()))
+                                    conn.send(Output(msg.clone()))
                                 }
                             }
                         }
-                        Request::Join(address) => {
+                        Input::Join(address) => {
                             let channel = state.channels.entry(address).or_default();
                             channel.push(conn);
                         }
