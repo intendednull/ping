@@ -12,12 +12,12 @@ use crate::space::{use_space, Action, Message, SpaceAddress, Spaces};
 
 #[function_component]
 pub fn Sidebar() -> Html {
-    let (spaces, dispatch) = use_store::<Spaces>();
+    let (spaces, _dispatch) = use_store::<Spaces>();
     let navigator = use_navigator().expect("Navigator not found");
 
     let list_spaces = spaces
         .iter()
-        .map(|(address, space)| {
+        .map(|(address, _space)| {
             let link = {
                 let onclick = {
                     let address = address.clone();
@@ -29,8 +29,11 @@ pub fn Sidebar() -> Html {
                     })
                 };
 
+                let mut title = address.to_string();
+                title.truncate(3);
+
                 html! {
-                    <button class="p-2 shadow " {onclick}>{address}</button>
+                    <button class="p-4 shadow rounded-lg bg-slate-600" {onclick}>{title}</button>
                 }
             };
 
@@ -41,7 +44,7 @@ pub fn Sidebar() -> Html {
         .collect::<Html>();
 
     html! {
-        <div class="space-x-2">
+        <div class="flex flex-col space-y-2 p-2 rounded-r ">
             { list_spaces }
             <CreateSpace />
         </div>
@@ -51,13 +54,18 @@ pub fn Sidebar() -> Html {
 #[function_component]
 fn CreateSpace() -> Html {
     let client = use_store_value::<Client>();
+    let navigator = use_navigator().expect("Navigator not found");
     let onclick = {
+        let navigator = navigator.clone();
         Dispatch::<Spaces>::new().reduce_callback(move |spaces| {
             let address = spaces.create_new_space();
             client.join_space(&address).ok();
+            navigator.push(Route::Space {
+                address: address.clone(),
+            })
         })
     };
     html! {
-        <button {onclick}>{"New space"}</button>
+        <button class="p-2 rounded-lg shadow bg-slate-600" {onclick}>{"+"}</button>
     }
 }

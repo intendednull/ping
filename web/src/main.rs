@@ -12,14 +12,14 @@ use view::Sidebar;
 #[function_component]
 fn App() -> Html {
     html! {
-        <>
         <BrowserRouter>
-            <Sidebar />
-            <main>
-                <Switch<Route> render={Switch::render(switch)} />
-            </main>
+            <div class="flex bg-slate-700 text-white h-full">
+                <Sidebar />
+                <main class="flex-1">
+                    <Switch<Route> render={Switch::render(switch)} />
+                </main>
+            </div>
         </BrowserRouter>
-        </>
     }
 }
 

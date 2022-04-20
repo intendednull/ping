@@ -16,10 +16,10 @@ pub struct Props {
 #[function_component]
 pub fn ViewSpace(props: &Props) -> Html {
     html! {
-        <>
-        <ViewMessages ..props.clone() />
-        <InputMessage ..props.clone() />
-        </>
+        <div class="h-full flex flex-col">
+            <div class="overflow-scroll flex-1"><ViewMessages ..props.clone() /></div>
+            <div><InputMessage ..props.clone() /></div>
+        </div>
     }
 }
 
@@ -48,7 +48,9 @@ fn InputMessage(props: &Props) -> Html {
         })
     };
     html! {
-        <input {onkeypress} />
+        <div class="p-4 sticky">
+            <input class="p-3 bg-slate-800 shadow-lg rounded-lg w-full" {onkeypress} />
+        </div>
     }
 }
 
@@ -57,6 +59,10 @@ fn ViewMessages(props: &Props) -> Html {
     let space = use_space(&props.address);
     space
         .messages()
-        .map(|m| html! { <p>{&m.text}</p> })
+        .map(|m| {
+            html! {
+                <p class="p-2">{&m.text}</p>
+            }
+        })
         .collect::<Html>()
 }
