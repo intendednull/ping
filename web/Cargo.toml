@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 common = { path = "../common" }
 yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"] }
+yew-router = { git = "https://github.com/yewstack/yew.git" }
 yewdux = { git = "https://github.com/intendednull/yewdux.git" }
 log = "0.4.14"
 console_error_panic_hook = "0.1.6"
