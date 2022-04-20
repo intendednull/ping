@@ -103,16 +103,22 @@ impl Spaces {
 
 #[hook]
 pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
-    let address = address.clone();
-    let (spaces, dispatch) = use_store::<Spaces>();
     let client = use_store_value::<Client>();
+    let space = use_selector_with_deps(
+        move |spaces: &Spaces, address| match spaces.get(&address) {
+            Some(space) => space,
+            None => {
+                client.join_space(&address).unwrap();
+                // Add new space to spaces.
+                let address = address.clone();
+                Dispatch::<Spaces>::new()
+                    .reduce(move |s| s.load_space(&address, Default::default()));
+                // Return an empty space to start.
+                Space::default().into()
+            }
+        },
+        address.clone(),
+    );
 
-    match spaces.get(&address) {
-        Some(space) => space,
-        None => {
-            client.join_space(&address).unwrap();
-            dispatch.reduce(move |s| s.load_space(&address, Default::default()));
-            Space::default().into()
-        }
-    }
+    space.as_ref().clone()
 }

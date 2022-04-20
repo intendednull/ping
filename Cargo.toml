@@ -1,2 +1,5 @@
 [workspace]
 members = ["common", "node", "web"]
+
+# [patch."https://github.com/intendednull/yewdux.git"]
+# yewdux = { path = "../yewdux/crates/yewdux" }
