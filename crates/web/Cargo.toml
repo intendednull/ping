@@ -3,23 +3,22 @@ name = "web"
 version = "0.1.0"
 authors = ["Noah <noah@coronasoftware.net>"]
 edition = "2018"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.38"
+async-std = "1.11.0"
 common = { path = "../common" }
+console_error_panic_hook = "0.1.6"
+futures = "0.3.21"
+getrandom = { version = "0.2.6", features = ["js"] }
+gloo = "0.7.0"
+log = "0.4.14"
+serde = "1.0.124"
+thiserror = "1.0.30"
+wasm-bindgen-futures = "0.4.30"
+wasm-logger = "0.2.0"
+web-sys = "0.3.57"
 yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"] }
 yew-router = { git = "https://github.com/yewstack/yew.git" }
 yewdux = { git = "https://github.com/intendednull/yewdux.git" }
-log = "0.4.14"
-console_error_panic_hook = "0.1.6"
-wasm-logger = "0.2.0"
-anyhow = "1.0.38"
-serde = "1.0.124"
-getrandom = { version = "0.2.6", features = ["js"] }
-wasm-bindgen-futures = "0.4.30"
-gloo = "0.7.0"
-futures = "0.3.21"
-async-std = "1.11.0"
-thiserror = "1.0.30"
-web-sys = "0.3.57"
