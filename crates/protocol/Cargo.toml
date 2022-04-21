@@ -1,9 +1,0 @@
-[package]
-name = "protocol"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-common = { path = "../common" }
-serde = "1.0.124"
-thiserror = "1.0.30"
