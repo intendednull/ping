@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use yew::prelude::*;
-use yewdux::{dispatch, mrc::Mrc, prelude::*};
+use yewdux::{dispatch, prelude::*};
 
 use common::address::Address;
 
@@ -105,10 +105,10 @@ impl Spaces {
 pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
     let client = use_store_value::<Client>();
     let space = use_selector_with_deps(
-        move |spaces: &Spaces, address| match spaces.get(&address) {
+        move |spaces: &Spaces, address| match spaces.get(address) {
             Some(space) => space,
             None => {
-                client.join_space(&address).unwrap();
+                client.join_space(address).unwrap();
                 // Add new space to spaces.
                 let address = address.clone();
                 Dispatch::<Spaces>::new()

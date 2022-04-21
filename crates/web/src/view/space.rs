@@ -6,7 +6,7 @@ use yewdux::prelude::*;
 
 use crate::net::Client;
 
-use crate::space::{use_space, Action, Message, SpaceAddress, Spaces};
+use crate::space::{use_space, Action, Message, SpaceAddress};
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
