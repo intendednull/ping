@@ -9,6 +9,7 @@ edition = "2018"
 anyhow = "1.0.38"
 async-std = "1.11.0"
 common = { path = "../common" }
+protocol = { path = "../protocol" }
 console_error_panic_hook = "0.1.6"
 futures = "0.3.21"
 getrandom = { version = "0.2.6", features = ["js"] }

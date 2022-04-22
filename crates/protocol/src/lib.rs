@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use libp2p::{
     identity::{Keypair, PublicKey},
     PeerId,
@@ -19,11 +21,19 @@ pub enum Error {
 }
 
 #[derive(Clone)]
-pub struct Identity(Keypair);
+pub struct Identity(Rc<Keypair>);
+impl Identity {
+    pub fn as_peer(&self) -> Peer {
+        Peer(self.0.public().to_peer_id().into())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct Peer(Rc<PeerId>);
 
 impl Identity {
     pub fn new() -> Self {
-        Self(Keypair::generate_ed25519())
+        Self(Keypair::generate_ed25519().into())
     }
 }
 
@@ -58,20 +68,20 @@ pub fn pack<T: Serialize>(payload: &T, identity: Identity) -> Result<Vec<u8>, Er
     let signature = Signature(identity.0.sign(&payload).map_err(|_| Error::Serde)?);
     let public_key = OpaquePublicKey(identity.0.public().to_protobuf_encoding());
 
-    Ok(transport::pack(&Message {
+    transport::pack(&Message {
         public_key,
         signature,
         payload,
     })
-    .map_err(|_| Error::Serde)?)
+    .map_err(|_| Error::Serde)
 }
 
-pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, PeerId), Error> {
+pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, Peer), Error> {
     let message: Message = transport::unpack(payload).map_err(|_| Error::Serde)?;
     let peer_id = message.verify()?;
     let payload = transport::unpack(&message.payload).map_err(|_| Error::Serde)?;
 
-    Ok((payload, peer_id))
+    Ok((payload, Peer(peer_id.into())))
 }
 
 #[cfg(test)]
@@ -84,9 +94,9 @@ mod tests {
         let payload = 1;
 
         let data = pack(&payload, identity.clone()).unwrap();
-        let (result, peer_id) = unpack::<i32>(&data).unwrap();
+        let (result, peer) = unpack::<i32>(&data).unwrap();
 
-        assert!(peer_id.is_public_key(&identity.0.public()).unwrap());
+        assert!(peer.0.is_public_key(&identity.0.public()).unwrap());
         assert_eq!(result, payload)
     }
 }

@@ -32,14 +32,15 @@ fn InputMessage(props: &Props) -> Html {
             if e.key() == "Enter" {
                 let input = e.target_unchecked_into::<HtmlInputElement>();
                 client
-                    .send(
+                    .action(
                         &address,
-                        &crate::net::Msg::Space(Action::SendMessage(
+                        &Action::SendMessage(
                             address.as_ref().clone(),
                             Message {
                                 text: input.value(),
+                                author: client.peer.clone(),
                             },
-                        )),
+                        ),
                     )
                     .unwrap();
 

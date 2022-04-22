@@ -6,7 +6,6 @@ use futures::{
     SinkExt, StreamExt,
 };
 use gloo::net::websocket::{futures::WebSocket, Message};
-use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 use yewdux::{dispatch, prelude::*};
 
@@ -20,11 +19,6 @@ pub enum ClientError {
     Serde,
 }
 
-#[derive(PartialEq, Serialize, Deserialize, Debug, Clone)]
-pub enum Msg {
-    Space(space::Action),
-}
-
 pub fn init_msg_handler() {
     let client = dispatch::get::<Client>();
     spawn_local(async move {
@@ -34,13 +28,10 @@ pub fn init_msg_handler() {
                 Ok(Message::Bytes(data)) => {
                     let output =
                         transport::unpack::<transport::Output>(&data).expect("Invalid output type");
-                    let msg = transport::unpack::<Msg>(&output.0).expect("Invalid msg type");
+                    let (action, peer_id) =
+                        protocol::unpack::<space::Action>(&output.0).expect("Invalid msg type");
 
-                    match msg {
-                        Msg::Space(action) => {
-                            dispatch.reduce(move |spaces| spaces.handle_action(action))
-                        }
-                    };
+                    dispatch.reduce(move |spaces| spaces.handle_action(action, peer_id))
                 }
                 _ => {}
             }
@@ -52,6 +43,8 @@ pub fn init_msg_handler() {
 pub struct Client {
     pub write: Rc<RwLock<SplitSink<WebSocket, Message>>>,
     pub read: Rc<RwLock<SplitStream<WebSocket>>>,
+    pub identity: protocol::Identity,
+    pub peer: protocol::Peer,
 }
 
 impl PartialEq for Client {
@@ -64,25 +57,32 @@ impl Store for Client {
     fn new() -> Self {
         let ws = WebSocket::open("ws://localhost:9001").unwrap();
         let (write, read) = ws.split();
+        let identity = protocol::Identity::new();
 
         Self {
             write: RwLock::new(write).into(),
             read: RwLock::new(read).into(),
+            peer: identity.as_peer(),
+            identity,
         }
     }
 }
 
 impl Client {
     pub fn join_space(&self, address: &SpaceAddress) -> Result<(), ClientError> {
-        self.request(&Input::Join(address.0.clone()))
+        self.send(&Input::Join(address.0.clone()))
     }
 
-    pub fn send(&self, address: &SpaceAddress, msg: &Msg) -> Result<(), ClientError> {
-        let data = transport::pack(msg).map_err(|_| ClientError::Serde)?;
-        self.request(&Input::Send(address.0.clone(), data.into()))
+    pub fn action(
+        &self,
+        address: &SpaceAddress,
+        action: &space::Action,
+    ) -> Result<(), ClientError> {
+        let data = protocol::pack(action, self.identity.clone()).map_err(|_| ClientError::Serde)?;
+        self.send(&Input::Send(address.0.clone(), data.into()))
     }
 
-    fn request(&self, input: &Input) -> Result<(), ClientError> {
+    fn send(&self, input: &Input) -> Result<(), ClientError> {
         let write = self.write.clone();
         let data = transport::pack(&input).map_err(|_| ClientError::Serde)?;
 

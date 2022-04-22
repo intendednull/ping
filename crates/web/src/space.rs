@@ -1,5 +1,6 @@
 use std::{collections::HashMap, rc::Rc, str::FromStr};
 
+use protocol::Peer;
 use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 use yewdux::{dispatch, prelude::*};
@@ -33,6 +34,7 @@ pub enum Action {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Message {
+    pub author: Peer,
     pub text: String,
 }
 
@@ -42,7 +44,8 @@ pub struct Space {
 }
 
 impl Space {
-    fn add_message(&mut self, message: Message) {
+    fn add_message(&mut self, mut message: Message, author: Peer) {
+        message.author = author;
         self.messages.push(message);
     }
 
@@ -65,11 +68,11 @@ pub fn join_spaces() {
 pub struct Spaces(HashMap<SpaceAddress, Rc<Space>>);
 
 impl Spaces {
-    pub fn handle_action(&mut self, action: Action) {
+    pub fn handle_action(&mut self, action: Action, peer: protocol::Peer) {
         match action {
             Action::SendMessage(address, message) => {
                 let space = self.space_mut(&address);
-                space.add_message(message);
+                space.add_message(message, peer);
             }
         }
     }
@@ -121,4 +124,30 @@ pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
     );
 
     space.as_ref().clone()
+}
+
+#[cfg(test)]
+mod tests {
+    use protocol::Identity;
+
+    use super::*;
+
+    #[test]
+    fn space_add_message_uses_correct_author() {
+        let i1 = Identity::new().as_peer();
+        let i2 = Identity::new().as_peer();
+        let mut space = Space::default();
+
+        space.add_message(
+            Message {
+                author: i1,
+                text: "".into(),
+            },
+            i2.clone(),
+        );
+
+        let message = &space.messages[0];
+
+        assert_eq!(message.author, i2)
+    }
 }
