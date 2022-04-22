@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
 use async_std::sync::RwLock;
-use common::transport::{self, Input};
 use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
@@ -9,8 +8,9 @@ use futures::{
 use gloo::net::websocket::{futures::WebSocket, Message};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
-
 use yewdux::{dispatch, prelude::*};
+
+use common::transport::{self, Input};
 
 use crate::space::{self, SpaceAddress, Spaces};
 

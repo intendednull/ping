@@ -34,7 +34,7 @@ fn InputMessage(props: &Props) -> Html {
                 client
                     .send(
                         &address,
-                        &crate::net::Msg::Space(Action::Send(
+                        &crate::net::Msg::Space(Action::SendMessage(
                             address.as_ref().clone(),
                             Message {
                                 text: input.value(),

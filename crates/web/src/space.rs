@@ -28,7 +28,7 @@ impl std::fmt::Display for SpaceAddress {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Action {
     /// Send a message to a space.
-    Send(SpaceAddress, Message),
+    SendMessage(SpaceAddress, Message),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -42,7 +42,7 @@ pub struct Space {
 }
 
 impl Space {
-    fn send_message(&mut self, message: Message) {
+    fn add_message(&mut self, message: Message) {
         self.messages.push(message);
     }
 
@@ -67,9 +67,9 @@ pub struct Spaces(HashMap<SpaceAddress, Rc<Space>>);
 impl Spaces {
     pub fn handle_action(&mut self, action: Action) {
         match action {
-            Action::Send(address, message) => {
+            Action::SendMessage(address, message) => {
                 let space = self.space_mut(&address);
-                space.send_message(message);
+                space.add_message(message);
             }
         }
     }
