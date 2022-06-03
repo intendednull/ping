@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, str::FromStr};
 
-use protocol::Peer;
+use protocol::identity::Peer;
 use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 use yewdux::{dispatch, prelude::*};
@@ -32,7 +32,7 @@ pub enum Action {
     SendMessage(SpaceAddress, Message),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Message {
     pub author: Peer,
     pub text: String,
@@ -68,7 +68,7 @@ pub fn join_spaces() {
 pub struct Spaces(HashMap<SpaceAddress, Rc<Space>>);
 
 impl Spaces {
-    pub fn handle_action(&mut self, action: Action, peer: protocol::Peer) {
+    pub fn handle_action(&mut self, action: Action, peer: protocol::identity::Peer) {
         match action {
             Action::SendMessage(address, message) => {
                 let space = self.space_mut(&address);

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use lunatic::{
     process::{self, Process},
@@ -31,7 +31,7 @@ pub fn start() -> Process<Msg> {
                         Input::Send(to, msg) => {
                             if let Some(channel) = state.channels.get(&to) {
                                 for conn in channel {
-                                    conn.send(Output(msg.clone()))
+                                    conn.send(Rc::clone(&msg))
                                 }
                             }
                         }

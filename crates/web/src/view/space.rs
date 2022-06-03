@@ -8,7 +8,7 @@ use crate::net::Client;
 
 use crate::space::{use_space, Action, Message, SpaceAddress};
 
-#[derive(Properties, Clone, PartialEq)]
+#[derive(Properties, Clone, PartialEq, Eq)]
 pub struct Props {
     pub address: Rc<SpaceAddress>,
 }
@@ -34,7 +34,7 @@ fn InputMessage(props: &Props) -> Html {
                 client
                     .action(
                         &address,
-                        &Action::SendMessage(
+                        Action::SendMessage(
                             address.as_ref().clone(),
                             Message {
                                 text: input.value(),

@@ -9,7 +9,7 @@ use gloo::net::websocket::{futures::WebSocket, Message};
 use wasm_bindgen_futures::spawn_local;
 use yewdux::{dispatch, prelude::*};
 
-use common::transport::{self, Input};
+
 
 use crate::space::{self, SpaceAddress, Spaces};
 
@@ -17,6 +17,8 @@ use crate::space::{self, SpaceAddress, Spaces};
 pub enum ClientError {
     #[error("Could not serialize message")]
     Serde,
+    #[error("Protocol error")]
+    Protocal(#[from] protocol::Error),
 }
 
 pub fn init_msg_handler() {
@@ -25,14 +27,14 @@ pub fn init_msg_handler() {
         let dispatch = Dispatch::<Spaces>::new();
         while let Some(data) = client.read.write().await.next().await {
             match data {
-                Ok(Message::Bytes(data)) => {
-                    let output =
-                        transport::unpack::<transport::Output>(&data).expect("Invalid output type");
-                    let (action, peer_id) =
-                        protocol::unpack::<space::Action>(&output.0).expect("Invalid msg type");
-
-                    dispatch.reduce_mut(move |spaces| spaces.handle_action(action, peer_id))
-                }
+                Ok(Message::Bytes(data)) => match protocol::unpack::<space::Action>(&data) {
+                    Ok((action, peer_id)) => {
+                        dispatch.reduce_mut(move |spaces| spaces.handle_action(action, peer_id))
+                    }
+                    Err(e) => {
+                        log::error!("Error receiving message: {:?}", e);
+                    }
+                },
                 Err(_e) => {}
                 _ => {}
             }
@@ -44,8 +46,8 @@ pub fn init_msg_handler() {
 pub struct Client {
     pub write: Rc<RwLock<SplitSink<WebSocket, Message>>>,
     pub read: Rc<RwLock<SplitStream<WebSocket>>>,
-    pub identity: protocol::Identity,
-    pub peer: protocol::Peer,
+    pub identity: protocol::identity::Identity,
+    pub peer: protocol::identity::Peer,
 }
 
 impl PartialEq for Client {
@@ -58,7 +60,7 @@ impl Store for Client {
     fn new() -> Self {
         let ws = WebSocket::open("ws://localhost:9001").unwrap();
         let (write, read) = ws.split();
-        let identity = protocol::Identity::new();
+        let identity = protocol::identity::Identity::new();
 
         Self {
             write: RwLock::new(write).into(),
@@ -71,24 +73,23 @@ impl Store for Client {
 
 impl Client {
     pub fn join_space(&self, address: &SpaceAddress) -> Result<(), ClientError> {
-        self.send(&Input::Join(address.0.clone()))
+        self.send(protocol::Message::JoinRoom(address.0.clone()))
     }
 
-    pub fn action(
-        &self,
-        address: &SpaceAddress,
-        action: &space::Action,
-    ) -> Result<(), ClientError> {
-        let data = protocol::pack(action, self.identity.clone()).map_err(|_| ClientError::Serde)?;
-        self.send(&Input::Send(address.0.clone(), data.into()))
+    pub fn action(&self, address: &SpaceAddress, action: space::Action) -> Result<(), ClientError> {
+        self.send(protocol::Message::Peer(
+            protocol::Payload::Public(action),
+            self.identity.clone(),
+            address.0.clone(),
+        ))
     }
 
-    fn send(&self, input: &Input) -> Result<(), ClientError> {
+    fn send(&self, msg: protocol::Message<space::Action>) -> Result<(), ClientError> {
         let write = self.write.clone();
-        let data = transport::pack(&input).map_err(|_| ClientError::Serde)?;
+        let payload = protocol::pack(msg)?;
 
         spawn_local(async move {
-            let result = write.write().await.send(Message::Bytes(data)).await;
+            let result = write.write().await.send(Message::Bytes(payload)).await;
 
             if let Err(err) = result {
                 log::error!("Error sending request: {}", err)

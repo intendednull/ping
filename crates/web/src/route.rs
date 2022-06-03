@@ -6,7 +6,7 @@ use yewdux::prelude::*;
 
 use crate::{space::SpaceAddress, view};
 
-#[derive(Routable, PartialEq, Clone, Debug)]
+#[derive(Routable, PartialEq, Eq, Clone, Debug)]
 pub enum Route {
     #[at("/space/:address")]
     Space { address: SpaceAddress },
@@ -26,7 +26,7 @@ pub fn switch(route: Route) -> Html {
     match route {
         Route::Home => html! {},
         Route::Space { address } => html! {
-            <view::ViewSpace address={Rc::new(address.clone())} />
+            <view::ViewSpace address={Rc::new(address)} />
         },
     }
 }

@@ -1,102 +1,59 @@
-use std::rc::Rc;
-
-use libp2p::{
-    identity::{Keypair, PublicKey},
-    PeerId,
-};
+use common::address::Address;
+use identity::{Identity, Peer};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use common::transport;
+pub mod identity;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Serde error")]
     Serde,
-    #[error("Invalid signature")]
-    InvalidSignature,
-    #[error("Unable to sign payload")]
-    SignError,
-    #[error("Unable to decode public key")]
-    PublicKey,
-}
-
-#[derive(Clone)]
-pub struct Identity(Rc<Keypair>);
-impl Identity {
-    pub fn as_peer(&self) -> Peer {
-        Peer(self.0.public().to_peer_id().into())
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct Peer(Rc<PeerId>);
-
-impl Identity {
-    pub fn new() -> Self {
-        Self(Keypair::generate_ed25519().into())
-    }
+    #[error("Identity error")]
+    Identity(#[from] identity::Error),
 }
 
 #[derive(Serialize, Deserialize)]
-struct OpaquePublicKey(Vec<u8>);
-#[derive(Serialize, Deserialize)]
-pub struct Signature(Vec<u8>);
-
-#[derive(Serialize, Deserialize)]
-struct Message {
-    public_key: OpaquePublicKey,
-    signature: Signature,
-    payload: Vec<u8>,
+pub enum Payload<T> {
+    Public(T),
+    Private(T),
 }
 
-impl Message {
-    fn verify(&self) -> Result<PeerId, Error> {
-        let public_key =
-            PublicKey::from_protobuf_encoding(&self.public_key.0).map_err(|_| Error::PublicKey)?;
+pub enum Message<T> {
+    Peer(Payload<T>, Identity, Address),
+    JoinRoom(Address),
+}
 
-        let verified = public_key.verify(&self.payload, &self.signature.0);
-        if verified {
-            Ok(public_key.to_peer_id())
-        } else {
-            Err(Error::InvalidSignature)
+pub fn pack<T: Serialize>(msg: Message<T>) -> Result<Vec<u8>, Error> {
+    match msg {
+        Message::Peer(payload, ident, address) => match payload {
+            Payload::Public(payload) => {
+                let payload = Payload::Public(identity::pack(&payload, ident)?);
+                let payload = common::transport::pack(&payload).map_err(|_| Error::Serde)?;
+                common::transport::pack(&common::transport::Input::Send(address, payload.into()))
+                    .map_err(|_e| Error::Serde)
+            }
+            Payload::Private(_payload) => {
+                unimplemented!()
+            }
+        },
+        Message::JoinRoom(address) => {
+            common::transport::pack(&common::transport::Input::Join(address))
+                .map_err(|_e| Error::Serde)
         }
     }
 }
 
-pub fn pack<T: Serialize>(payload: &T, identity: Identity) -> Result<Vec<u8>, Error> {
-    let payload = transport::pack(payload).map_err(|_| Error::Serde)?;
-    let signature = Signature(identity.0.sign(&payload).map_err(|_| Error::Serde)?);
-    let public_key = OpaquePublicKey(identity.0.public().to_protobuf_encoding());
-
-    transport::pack(&Message {
-        public_key,
-        signature,
-        payload,
-    })
-    .map_err(|_| Error::Serde)
-}
-
 pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, Peer), Error> {
-    let message: Message = transport::unpack(payload).map_err(|_| Error::Serde)?;
-    let peer_id = message.verify()?;
-    let payload = transport::unpack(&message.payload).map_err(|_| Error::Serde)?;
+    let payload: common::transport::Output =
+        common::transport::unpack(payload).map_err(|_| Error::Serde)?;
+    let payload: Payload<Vec<u8>> =
+        common::transport::unpack(&payload).map_err(|_| Error::Serde)?;
 
-    Ok((payload, Peer(peer_id.into())))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pack_and_unpack_works() {
-        let identity = Identity::new();
-        let payload = 1;
-
-        let data = pack(&payload, identity.clone()).unwrap();
-        let (result, peer) = unpack::<i32>(&data).unwrap();
-
-        assert!(peer.0.is_public_key(&identity.0.public()).unwrap());
-        assert_eq!(result, payload)
+    match payload {
+        Payload::Public(payload) => Ok(identity::unpack(&payload).expect("5")),
+        // Payload::Public(payload) => Ok(identity::unpack(&payload)?),
+        Payload::Private(_payload) => {
+            unimplemented!()
+        }
     }
 }
