@@ -115,7 +115,7 @@ pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
                 // Add new space to spaces.
                 let address = address.clone();
                 Dispatch::<Spaces>::new()
-                    .reduce(move |s| s.load_space(&address, Default::default()));
+                    .reduce_mut(move |s| s.load_space(&address, Default::default()));
                 // Return an empty space to start.
                 Space::default().into()
             }

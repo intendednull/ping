@@ -20,7 +20,7 @@ impl Store for Route {
     }
 }
 
-pub fn switch(route: &Route) -> Html {
+pub fn switch(route: Route) -> Html {
     Dispatch::<Route>::new().set(route.clone());
 
     match route {

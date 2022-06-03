@@ -16,7 +16,7 @@ fn App() -> Html {
             <div class="flex bg-slate-700 text-white h-full">
                 <Sidebar />
                 <main class="flex-1">
-                    <Switch<Route> render={Switch::render(switch)} />
+                    <Switch<Route> render={switch} />
                 </main>
             </div>
         </BrowserRouter>

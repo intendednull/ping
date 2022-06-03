@@ -31,8 +31,9 @@ pub fn init_msg_handler() {
                     let (action, peer_id) =
                         protocol::unpack::<space::Action>(&output.0).expect("Invalid msg type");
 
-                    dispatch.reduce(move |spaces| spaces.handle_action(action, peer_id))
+                    dispatch.reduce_mut(move |spaces| spaces.handle_action(action, peer_id))
                 }
+                Err(_e) => {}
                 _ => {}
             }
         }

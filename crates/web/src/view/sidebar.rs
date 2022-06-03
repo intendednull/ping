@@ -1,6 +1,3 @@
-
-
-
 use yew::prelude::*;
 use yew_router::hooks::use_navigator;
 use yewdux::prelude::*;
@@ -8,7 +5,7 @@ use yewdux::prelude::*;
 use crate::net::Client;
 
 use crate::route::Route;
-use crate::space::{Spaces};
+use crate::space::Spaces;
 
 #[function_component]
 pub fn Sidebar() -> Html {
@@ -23,7 +20,7 @@ pub fn Sidebar() -> Html {
                     let address = address.clone();
                     let navigator = navigator.clone();
                     Callback::from(move |_| {
-                        navigator.push(Route::Space {
+                        navigator.push(&Route::Space {
                             address: address.clone(),
                         })
                     })
@@ -57,12 +54,10 @@ fn CreateSpace() -> Html {
     let navigator = use_navigator().expect("Navigator not found");
     let onclick = {
         let navigator = navigator;
-        Dispatch::<Spaces>::new().reduce_callback(move |spaces| {
+        Dispatch::<Spaces>::new().reduce_mut_callback(move |spaces| {
             let address = spaces.create_new_space();
             client.join_space(&address).ok();
-            navigator.push(Route::Space {
-                address,
-            })
+            navigator.push(&Route::Space { address });
         })
     };
     html! {
