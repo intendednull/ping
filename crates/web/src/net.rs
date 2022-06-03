@@ -9,8 +9,6 @@ use gloo::net::websocket::{futures::WebSocket, Message};
 use wasm_bindgen_futures::spawn_local;
 use yewdux::{dispatch, prelude::*};
 
-
-
 use crate::space::{self, SpaceAddress, Spaces};
 
 #[derive(Debug, thiserror::Error)]
@@ -28,9 +26,9 @@ pub fn init_msg_handler() {
         while let Some(data) = client.read.write().await.next().await {
             match data {
                 Ok(Message::Bytes(data)) => match protocol::unpack::<space::Action>(&data) {
-                    Ok((action, peer_id)) => {
-                        dispatch.reduce_mut(move |spaces| spaces.handle_action(action, peer_id))
-                    }
+                    Ok((action, peer_id, address)) => dispatch.reduce_mut(move |spaces| {
+                        spaces.handle_action(action, peer_id, &SpaceAddress(address))
+                    }),
                     Err(e) => {
                         log::error!("Error receiving message: {:?}", e);
                     }

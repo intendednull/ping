@@ -30,8 +30,12 @@ pub fn start() -> Process<Msg> {
                     Msg::Request(conn, msg) => match msg {
                         Input::Send(to, msg) => {
                             if let Some(channel) = state.channels.get(&to) {
+                                let output = Output {
+                                    payload: msg,
+                                    address: to,
+                                };
                                 for conn in channel {
-                                    conn.send(Rc::clone(&msg))
+                                    conn.send(output.clone())
                                 }
                             }
                         }

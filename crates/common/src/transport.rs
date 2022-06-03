@@ -11,7 +11,11 @@ pub enum Input {
     Join(Address),
 }
 
-pub type Output = Rc<Vec<u8>>;
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
+pub struct Output {
+    pub payload: Rc<Vec<u8>>,
+    pub address: Address,
+}
 
 pub fn pack<T: Serialize>(data: &T) -> anyhow::Result<Vec<u8>> {
     Ok(bincode::serialize(data)?)

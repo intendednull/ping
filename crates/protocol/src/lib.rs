@@ -43,15 +43,18 @@ pub fn pack<T: Serialize>(msg: Message<T>) -> Result<Vec<u8>, Error> {
     }
 }
 
-pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, Peer), Error> {
-    let payload: common::transport::Output =
+pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, Peer, Address), Error> {
+    let output: common::transport::Output =
         common::transport::unpack(payload).map_err(|_| Error::Serde)?;
     let payload: Payload<Vec<u8>> =
-        common::transport::unpack(&payload).map_err(|_| Error::Serde)?;
+        common::transport::unpack(&output.payload).map_err(|_| Error::Serde)?;
 
     match payload {
-        Payload::Public(payload) => Ok(identity::unpack(&payload).expect("5")),
-        // Payload::Public(payload) => Ok(identity::unpack(&payload)?),
+        Payload::Public(payload) => {
+            let (result, peer_id) = identity::unpack(&payload)?;
+
+            Ok((result, peer_id, output.address))
+        }
         Payload::Private(_payload) => {
             unimplemented!()
         }

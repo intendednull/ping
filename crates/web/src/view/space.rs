@@ -34,13 +34,10 @@ fn InputMessage(props: &Props) -> Html {
                 client
                     .action(
                         &address,
-                        Action::SendMessage(
-                            address.as_ref().clone(),
-                            Message {
-                                text: input.value(),
-                                author: client.peer.clone(),
-                            },
-                        ),
+                        Action::Message(Message {
+                            text: input.value(),
+                            author: client.peer.clone(),
+                        }),
                     )
                     .unwrap();
 

@@ -7,7 +7,7 @@ use yewdux::{dispatch, prelude::*};
 
 use common::address::Address;
 
-use crate::net::Client;
+use crate::{net::Client, presense::Presense};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SpaceAddress(pub Address);
@@ -29,7 +29,8 @@ impl std::fmt::Display for SpaceAddress {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Action {
     /// Send a message to a space.
-    SendMessage(SpaceAddress, Message),
+    Message(Message),
+    Presense(Presense),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,9 +69,14 @@ pub fn join_spaces() {
 pub struct Spaces(HashMap<SpaceAddress, Rc<Space>>);
 
 impl Spaces {
-    pub fn handle_action(&mut self, action: Action, peer: protocol::identity::Peer) {
+    pub fn handle_action(
+        &mut self,
+        action: Action,
+        peer: protocol::identity::Peer,
+        address: &SpaceAddress,
+    ) {
         match action {
-            Action::SendMessage(address, message) => {
+            Action::Message(message) => {
                 let space = self.space_mut(&address);
                 space.add_message(message, peer);
             }
