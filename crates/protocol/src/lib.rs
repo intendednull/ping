@@ -1,5 +1,5 @@
 use common::address::Address;
-use identity::{Identity, Peer};
+use identity::{Identity, PeerId};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub mod identity;
@@ -43,7 +43,7 @@ pub fn pack<T: Serialize>(msg: Message<T>) -> Result<Vec<u8>, Error> {
     }
 }
 
-pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, Peer, Address), Error> {
+pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, PeerId, Address), Error> {
     let output: common::transport::Output =
         common::transport::unpack(payload).map_err(|_| Error::Serde)?;
     let payload: Payload<Vec<u8>> =

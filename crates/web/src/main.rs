@@ -8,7 +8,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use route::{switch, Route};
-use view::Sidebar;
+use view::{Sidebar};
 
 #[function_component]
 fn App() -> Html {
@@ -26,6 +26,8 @@ fn App() -> Html {
 
 fn main() {
     net::init_msg_handler();
+    presense::init();
+
     space::join_spaces();
     wasm_logger::init(wasm_logger::Config::default());
     console_error_panic_hook::set_once();

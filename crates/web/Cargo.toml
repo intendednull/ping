@@ -23,3 +23,4 @@ web-sys = "0.3.57"
 yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"] }
 yew-router = { git = "https://github.com/yewstack/yew.git" }
 yewdux = { git = "https://github.com/intendednull/yewdux.git" }
+chrono = { version = "0.4.19", features = ["wasmbind", "serde"] }

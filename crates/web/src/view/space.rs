@@ -5,8 +5,8 @@ use yew::prelude::*;
 use yewdux::prelude::*;
 
 use crate::net::Client;
-
 use crate::space::{use_space, Action, Message, SpaceAddress};
+use crate::view::presense::ViewPresence;
 
 #[derive(Properties, Clone, PartialEq, Eq)]
 pub struct Props {
@@ -16,9 +16,16 @@ pub struct Props {
 #[function_component]
 pub fn ViewSpace(props: &Props) -> Html {
     html! {
-        <div class="h-full flex flex-col">
-            <div class="overflow-scroll flex-1"><ViewMessages ..props.clone() /></div>
-            <div><InputMessage ..props.clone() /></div>
+        <div class="h-full flex">
+            <div class="h-full flex-1">
+                <div class="h-full flex flex-col">
+                    <div class="overflow-scroll flex-1"><ViewMessages ..props.clone() /></div>
+                    <div><InputMessage ..props.clone() /></div>
+                </div>
+            </div>
+            <div class="overflow-scroll">
+                <ViewPresence address={props.address.clone()} />
+            </div>
         </div>
     }
 }

@@ -1,9 +1,6 @@
 use std::rc::Rc;
 
-use libp2p::{
-    identity::{Keypair, PublicKey},
-    PeerId,
-};
+use libp2p::identity::{Keypair, PublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use common::transport;
@@ -23,13 +20,13 @@ pub enum Error {
 #[derive(Clone)]
 pub struct Identity(Rc<Keypair>);
 impl Identity {
-    pub fn as_peer(&self) -> Peer {
-        Peer(self.0.public().to_peer_id().into())
+    pub fn as_peer(&self) -> PeerId {
+        PeerId(self.0.public().to_peer_id().into())
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct Peer(Rc<PeerId>);
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+pub struct PeerId(Rc<libp2p::PeerId>);
 
 impl Identity {
     pub fn new() -> Self {
@@ -50,7 +47,7 @@ struct Message {
 }
 
 impl Message {
-    fn verify(&self) -> Result<PeerId, Error> {
+    fn verify(&self) -> Result<libp2p::PeerId, Error> {
         let public_key =
             PublicKey::from_protobuf_encoding(&self.public_key.0).map_err(|_| Error::PublicKey)?;
 
@@ -76,12 +73,12 @@ pub fn pack<T: Serialize>(payload: &T, identity: Identity) -> Result<Vec<u8>, Er
     .map_err(|_| Error::Serde)
 }
 
-pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, Peer), Error> {
+pub fn unpack<T: DeserializeOwned>(payload: &[u8]) -> Result<(T, PeerId), Error> {
     let message: Message = transport::unpack(payload).map_err(|_| Error::Serde)?;
     let peer_id = message.verify()?;
     let payload = transport::unpack(&message.payload).map_err(|_| Error::Serde)?;
 
-    Ok((payload, Peer(peer_id.into())))
+    Ok((payload, PeerId(peer_id.into())))
 }
 
 #[cfg(test)]

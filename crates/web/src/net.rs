@@ -9,7 +9,7 @@ use gloo::net::websocket::{futures::WebSocket, Message};
 use wasm_bindgen_futures::spawn_local;
 use yewdux::{dispatch, prelude::*};
 
-use crate::space::{self, SpaceAddress, Spaces};
+use crate::space::{self, SpaceAddress, Universe};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
@@ -22,7 +22,7 @@ pub enum ClientError {
 pub fn init_msg_handler() {
     let client = dispatch::get::<Client>();
     spawn_local(async move {
-        let dispatch = Dispatch::<Spaces>::new();
+        let dispatch = Dispatch::<Universe>::new();
         while let Some(data) = client.read.write().await.next().await {
             match data {
                 Ok(Message::Bytes(data)) => match protocol::unpack::<space::Action>(&data) {
@@ -45,7 +45,7 @@ pub struct Client {
     pub write: Rc<RwLock<SplitSink<WebSocket, Message>>>,
     pub read: Rc<RwLock<SplitStream<WebSocket>>>,
     pub identity: protocol::identity::Identity,
-    pub peer: protocol::identity::Peer,
+    pub peer: protocol::identity::PeerId,
 }
 
 impl PartialEq for Client {

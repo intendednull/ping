@@ -9,14 +9,14 @@ watch *ARGS:
 	
 
 run-web *ARGS:
-	trunk serve {{ ARGS }} ./web/index.html 
+	trunk serve {{ ARGS }} crates/web/index.html 
 
 watch-web *ARGS:
-	watchexec --exts rs,css,scss,html,js,toml -w common -w web -i dist -i pkg -r "just run-web {{ ARGS }}" 
+	watchexec --exts rs,css,scss,html,js,toml -w crates/common -w crates/web -w crates/protocol -i dist -i pkg -r "just run-web {{ ARGS }}" 
 
 run-node *ARGS:
 	cargo build {{ ARGS }} --target=wasm32-wasi --bin node
 	lunatic target/wasm32-wasi/debug/node.wasm
 
 watch-node *ARGS:
-	watchexec --exts rs,toml -w common -w node -r "just run-node {{ ARGS }}" 
+	watchexec --exts rs,toml -w crates/common -w crates/node -r "just run-node {{ ARGS }}" 

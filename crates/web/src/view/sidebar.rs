@@ -5,11 +5,11 @@ use yewdux::prelude::*;
 use crate::net::Client;
 
 use crate::route::Route;
-use crate::space::Spaces;
+use crate::space::Universe;
 
 #[function_component]
 pub fn Sidebar() -> Html {
-    let (spaces, _dispatch) = use_store::<Spaces>();
+    let (spaces, _dispatch) = use_store::<Universe>();
     let navigator = use_navigator().expect("Navigator not found");
 
     let list_spaces = spaces
@@ -54,7 +54,7 @@ fn CreateSpace() -> Html {
     let navigator = use_navigator().expect("Navigator not found");
     let onclick = {
         let navigator = navigator;
-        Dispatch::<Spaces>::new().reduce_mut_callback(move |spaces| {
+        Dispatch::<Universe>::new().reduce_mut_callback(move |spaces| {
             let address = spaces.create_new_space();
             client.join_space(&address).ok();
             navigator.push(&Route::Space { address });

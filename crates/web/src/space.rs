@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, str::FromStr};
 
-use protocol::identity::Peer;
+use protocol::identity::PeerId;
 use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 use yewdux::{dispatch, prelude::*};
@@ -26,7 +26,7 @@ impl std::fmt::Display for SpaceAddress {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action {
     /// Send a message to a space.
     Message(Message),
@@ -35,17 +35,18 @@ pub enum Action {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Message {
-    pub author: Peer,
+    pub author: PeerId,
     pub text: String,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Space {
-    messages: Vec<Message>,
+    pub messages: Vec<Message>,
+    pub presense: HashMap<PeerId, Presense>,
 }
 
 impl Space {
-    fn add_message(&mut self, mut message: Message, author: Peer) {
+    fn add_message(&mut self, mut message: Message, author: PeerId) {
         message.author = author;
         self.messages.push(message);
     }
@@ -56,7 +57,7 @@ impl Space {
 }
 
 pub fn join_spaces() {
-    let spaces = dispatch::get::<Spaces>();
+    let spaces = dispatch::get::<Universe>();
     let client = dispatch::get::<Client>();
 
     for (address, _) in spaces.iter() {
@@ -66,19 +67,23 @@ pub fn join_spaces() {
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, Store)]
 #[store(storage = "local")]
-pub struct Spaces(HashMap<SpaceAddress, Rc<Space>>);
+pub struct Universe(HashMap<SpaceAddress, Rc<Space>>);
 
-impl Spaces {
+impl Universe {
     pub fn handle_action(
         &mut self,
         action: Action,
-        peer: protocol::identity::Peer,
+        peer: protocol::identity::PeerId,
         address: &SpaceAddress,
     ) {
+        let space = self.space_mut(address);
         match action {
             Action::Message(message) => {
-                let space = self.space_mut(&address);
                 space.add_message(message, peer);
+            }
+            Action::Presense(mut presense) => {
+                presense.peer_id = peer;
+                presense.apply(space);
             }
         }
     }
@@ -103,7 +108,7 @@ impl Spaces {
         *self.space_mut(address) = space
     }
 
-    fn space_mut(&mut self, address: &SpaceAddress) -> &mut Space {
+    pub fn space_mut(&mut self, address: &SpaceAddress) -> &mut Space {
         let space = self.0.entry(address.clone()).or_default();
 
         Rc::make_mut(space)
@@ -114,13 +119,13 @@ impl Spaces {
 pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
     let client = use_store_value::<Client>();
     let space = use_selector_with_deps(
-        move |spaces: &Spaces, address| match spaces.get(address) {
+        move |spaces: &Universe, address| match spaces.get(address) {
             Some(space) => space,
             None => {
                 client.join_space(address).unwrap();
                 // Add new space to spaces.
                 let address = address.clone();
-                Dispatch::<Spaces>::new()
+                Dispatch::<Universe>::new()
                     .reduce_mut(move |s| s.load_space(&address, Default::default()));
                 // Return an empty space to start.
                 Space::default().into()
