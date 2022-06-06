@@ -2,7 +2,7 @@ use gloo::timers::callback::Interval;
 use serde::{Deserialize, Serialize};
 
 use chrono::{DateTime, Duration, Utc};
-use protocol::identity::{PeerId};
+use protocol::identity::PeerId;
 
 use yewdux::{
     dispatch,
@@ -14,15 +14,16 @@ use crate::{
     space::{Space, Universe},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Store)]
+#[store(storage = "local")]
 pub struct Presense {
     pub peer_id: PeerId,
     pub alias: String,
     last_updated: DateTime<Utc>,
 }
 
-impl Store for Presense {
-    fn new() -> Self {
+impl Default for Presense {
+    fn default() -> Self {
         Self {
             peer_id: dispatch::get::<Client>().peer.clone(),
             alias: "Anonymous".to_string(),

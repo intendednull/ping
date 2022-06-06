@@ -8,7 +8,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use route::{switch, Route};
-use view::{Sidebar};
+use view::Sidebar;
 
 #[function_component]
 fn App() -> Html {
