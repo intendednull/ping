@@ -17,6 +17,9 @@ pub enum Error {
     PublicKey,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+pub struct PeerId(Rc<libp2p::PeerId>);
+
 #[derive(Clone)]
 pub struct Identity(Rc<Keypair>);
 impl Identity {
@@ -25,12 +28,15 @@ impl Identity {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
-pub struct PeerId(Rc<libp2p::PeerId>);
-
 impl Identity {
     pub fn new() -> Self {
         Self(Keypair::generate_ed25519().into())
+    }
+}
+
+impl Default for Identity {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -26,7 +26,7 @@ impl Default for Presense {
     fn default() -> Self {
         Self {
             peer_id: dispatch::get::<Client>().peer.clone(),
-            alias: "Anonymous".to_string(),
+            alias: "anon".to_string(),
             last_updated: Utc::now(),
         }
     }
