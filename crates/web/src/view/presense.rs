@@ -25,8 +25,10 @@ pub fn ViewPresence(props: &Props) -> Html {
             <div class="flex flex-col space-y-2 p-2">
                 { view }
             </div>
-            <div class="p-4 bg-slate-600 rounded">
-                <h1 class="text-xl"><ViewAlias /></h1>
+            <div class="p-4">
+                <div class="p-3 bg-slate-600 rounded shadow">
+                    <h1 class="text-xl"><ViewAlias /></h1>
+                </div>
             </div>
         </div>
     }
@@ -66,6 +68,6 @@ pub fn ViewAlias() -> Html {
     });
 
     html! {
-        <input class="bg-slate-800 rounded p-2" value={alias.to_string()} {onchange} />
+        <input class="bg-slate-800 rounded p-3" value={alias.to_string()} {onchange} />
     }
 }

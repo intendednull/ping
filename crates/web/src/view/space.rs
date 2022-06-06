@@ -65,8 +65,17 @@ fn ViewMessages(props: &Props) -> Html {
     space
         .messages()
         .map(|m| {
+            let alias = space
+                .presense
+                .get(&m.author)
+                .map(|x| x.alias.clone())
+                .unwrap_or_else(|| "anon".to_string());
+
             html! {
-                <p class="p-2">{&m.text}</p>
+                <div class="p-2">
+                    <p class="font-extralight">{&alias}</p>
+                    <p class="">{&m.text}</p>
+                </div>
             }
         })
         .collect::<Html>()
