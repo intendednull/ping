@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use chrono::Utc;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yewdux::prelude::*;
@@ -44,6 +45,7 @@ fn InputMessage(props: &Props) -> Html {
                         Action::Message(Message {
                             text: input.value(),
                             author: client.peer.clone(),
+                            timestamp: Utc::now(),
                         }),
                     )
                     .unwrap();
@@ -70,10 +72,17 @@ fn ViewMessages(props: &Props) -> Html {
                 .get(&m.author)
                 .map(|x| x.alias.clone())
                 .unwrap_or_else(|| "anon".to_string());
+            let timestamp = m.timestamp.format("%R").to_string();
 
             html! {
                 <div class="p-2">
-                    <p class="font-extralight">{&alias}</p>
+                    <div class="flex">
+                        <p class="font-extralight">
+                            {&alias}
+                            {" "}
+                            {&timestamp}
+                        </p>
+                    </div>
                     <p class="">{&m.text}</p>
                 </div>
             }

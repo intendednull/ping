@@ -1,5 +1,6 @@
 use std::{collections::HashMap, rc::Rc, str::FromStr};
 
+use chrono::{DateTime, Utc};
 use protocol::identity::PeerId;
 use serde::{Deserialize, Serialize};
 use yew::prelude::*;
@@ -37,6 +38,7 @@ pub enum Action {
 pub struct Message {
     pub author: PeerId,
     pub text: String,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -48,6 +50,7 @@ pub struct Space {
 impl Space {
     fn add_message(&mut self, mut message: Message, author: PeerId) {
         message.author = author;
+        message.timestamp = Utc::now();
         self.messages.push(message);
     }
 
