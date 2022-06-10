@@ -6,8 +6,7 @@ use yew::prelude::*;
 use yewdux::prelude::*;
 
 use crate::{
-    presense::Presense,
-    space::{use_space, Space, SpaceAddress},
+    space::{use_space, Space, SpaceAddress, Universe},
 };
 
 #[derive(Properties, Clone, PartialEq, Eq)]
@@ -27,7 +26,7 @@ pub fn ViewPresence(props: &Props) -> Html {
             </div>
             <div class="p-4">
                 <div class="p-3 bg-slate-600 rounded shadow">
-                    <h1 class="text-xl"><ViewAlias /></h1>
+                    <h1 class="text-xl"><ViewAlias ..props.clone() /></h1>
                 </div>
             </div>
         </div>
@@ -37,6 +36,7 @@ pub fn ViewPresence(props: &Props) -> Html {
 fn view_presense_list(space: &Space) -> Html {
     space
         .presense
+        .peers
         .values()
         .map(|presense| {
             let alias = &presense.alias;
@@ -48,8 +48,17 @@ fn view_presense_list(space: &Space) -> Html {
 }
 
 #[function_component]
-pub fn ViewAlias() -> Html {
-    let alias = use_selector(|x: &Presense| x.alias.clone());
+pub fn ViewAlias(props: &Props) -> Html {
+    let alias = use_selector_with_deps(
+        |state: &Universe, address| {
+            state
+                .get(address)
+                .map(|space| space.presense.local.alias.clone())
+                .unwrap_or_else(|| "anon".to_string())
+        },
+        props.address.clone(),
+    );
+
     let is_editing = use_state(|| false);
     let onclick = {
         let is_editing = is_editing.clone();
@@ -62,10 +71,15 @@ pub fn ViewAlias() -> Html {
         };
     }
 
-    let onchange = Dispatch::<Presense>::new().reduce_mut_callback_with(move |s, e: Event| {
-        s.alias = e.target_unchecked_into::<HtmlInputElement>().value();
-        is_editing.set(false);
-    });
+    let onchange = {
+        let address = props.address.clone();
+        Dispatch::<Universe>::new().reduce_mut_callback_with(move |s, e: Event| {
+            s.space_mut(&address).presense.local.alias =
+                e.target_unchecked_into::<HtmlInputElement>().value();
+
+            is_editing.set(false);
+        })
+    };
 
     html! {
         <input class="bg-slate-800 rounded p-3" value={alias.to_string()} {onchange} />

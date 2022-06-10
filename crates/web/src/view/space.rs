@@ -1,12 +1,15 @@
 use std::rc::Rc;
 
-use chrono::Utc;
+use chrono::{Duration, Utc};
+use gloo::timers::callback::Timeout;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
-use yewdux::prelude::*;
+
+use yewdux::{dispatch, prelude::*};
 
 use crate::net::Client;
-use crate::space::{use_space, Action, Message, SpaceAddress};
+use crate::presense::PRESENSE_INTERVAL;
+use crate::space::{use_space, Action, Message, SpaceAddress, Universe};
 use crate::view::presense::ViewPresence;
 
 #[derive(Properties, Clone, PartialEq, Eq)]
@@ -51,11 +54,66 @@ fn InputMessage(props: &Props) -> Html {
                     .unwrap();
 
                 input.set_value("");
+            } else {
+                // Set is_typing
+                {
+                    let address = address.clone();
+                    Dispatch::<Universe>::new().reduce_mut(move |s| {
+                        let space = s.space_mut(&address);
+                        space.presense.local.is_typing = true;
+                        space.presense.local.last_updated = Utc::now();
+                    });
+                }
+                // Unset is_typing if no activity for 5 seconds.
+                {
+                    let address = address.clone();
+                    Timeout::new(PRESENSE_INTERVAL * 1000, move || {
+                        Dispatch::<Universe>::new().reduce_mut(move |s| {
+                            let space = s.space_mut(&address);
+                            if Utc::now() - space.presense.local.last_updated
+                                >= Duration::seconds(PRESENSE_INTERVAL as _)
+                            {
+                                space.presense.local.is_typing = false;
+                                space.presense.local.last_updated = Utc::now();
+                            }
+                        });
+                    })
+                    .forget();
+                }
             }
         })
     };
+
+    let typing_indicator = {
+        let names = use_selector_with_deps(
+            |s: &Universe, address| {
+                let local_id = dispatch::get::<Client>().peer.clone();
+                s.get(address)
+                    .map(|space| {
+                        space
+                            .presense
+                            .peers
+                            .values()
+                            .filter(|x| x.peer_id != local_id)
+                            .filter(|x| x.is_typing)
+                            .map(|x| x.alias.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    })
+                    .unwrap_or_default()
+            },
+            props.address.clone(),
+        );
+
+        if names.is_empty() {
+            html! {}
+        } else {
+            html! { <>{ names }{" is typing" }</> }
+        }
+    };
     html! {
         <div class="p-4 sticky">
+            { typing_indicator }
             <input class="p-3 bg-slate-800 shadow-lg rounded-lg w-full" {onkeypress} />
         </div>
     }
@@ -69,6 +127,7 @@ fn ViewMessages(props: &Props) -> Html {
         .map(|m| {
             let alias = space
                 .presense
+                .peers
                 .get(&m.author)
                 .map(|x| x.alias.clone())
                 .unwrap_or_else(|| "anon".to_string());

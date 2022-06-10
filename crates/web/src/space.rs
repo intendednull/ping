@@ -8,7 +8,10 @@ use yewdux::{dispatch, prelude::*};
 
 use common::address::Address;
 
-use crate::{net::Client, presense::Presense};
+use crate::{
+    net::Client,
+    presense::{self, Presense},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SpaceAddress(pub Address);
@@ -31,7 +34,7 @@ impl std::fmt::Display for SpaceAddress {
 pub enum Action {
     /// Send a message to a space.
     Message(Message),
-    Presense(Presense),
+    Presense(presense::Msg),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,13 +44,22 @@ pub struct Message {
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Space {
+    pub address: SpaceAddress,
     pub messages: Vec<Message>,
-    pub presense: HashMap<PeerId, Presense>,
+    pub presense: Presense,
 }
 
 impl Space {
+    fn new(address: SpaceAddress) -> Self {
+        Self {
+            address,
+            messages: Default::default(),
+            presense: Default::default(),
+        }
+    }
+
     fn add_message(&mut self, mut message: Message, author: PeerId) {
         message.author = author;
         message.timestamp = Utc::now();
@@ -68,7 +80,7 @@ pub fn join_spaces() {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, Store)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, Store)]
 #[store(storage = "local")]
 pub struct Universe(HashMap<SpaceAddress, Rc<Space>>);
 
@@ -84,10 +96,7 @@ impl Universe {
             Action::Message(message) => {
                 space.add_message(message, peer);
             }
-            Action::Presense(mut presense) => {
-                presense.peer_id = peer;
-                presense.apply(space);
-            }
+            Action::Presense(msg) => msg.apply(space, &peer),
         }
     }
 
@@ -112,7 +121,10 @@ impl Universe {
     }
 
     pub fn space_mut(&mut self, address: &SpaceAddress) -> &mut Space {
-        let space = self.0.entry(address.clone()).or_default();
+        let space = self
+            .0
+            .entry(address.clone())
+            .or_insert_with(|| Space::new(address.clone()).into());
 
         Rc::make_mut(space)
     }
@@ -128,10 +140,13 @@ pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
                 client.join_space(address).unwrap();
                 // Add new space to spaces.
                 let address = address.clone();
-                Dispatch::<Universe>::new()
-                    .reduce_mut(move |s| s.load_space(&address, Default::default()));
-                // Return an empty space to start.
-                Space::default().into()
+                let space = Space::new(address.clone());
+                {
+                    let space = space.clone();
+                    Dispatch::<Universe>::new().reduce_mut(move |s| s.load_space(&address, space));
+                }
+
+                space.into()
             }
         },
         address.clone(),
@@ -142,7 +157,7 @@ pub fn use_space(address: &SpaceAddress) -> Rc<Space> {
 
 #[cfg(test)]
 mod tests {
-    use protocol::Identity;
+    use protocol::identity::Identity;
 
     use super::*;
 
@@ -150,12 +165,13 @@ mod tests {
     fn space_add_message_uses_correct_author() {
         let i1 = Identity::new().as_peer();
         let i2 = Identity::new().as_peer();
-        let mut space = Space::default();
+        let mut space = Space::new(SpaceAddress(Address::new()));
 
         space.add_message(
             Message {
                 author: i1,
                 text: "".into(),
+                timestamp: Utc::now(),
             },
             i2.clone(),
         );
